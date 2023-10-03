@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
 }
 
 dependencies {
@@ -13,4 +14,18 @@ dependencies {
 java {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId GROUP_ID
+            artifactId 'processer'
+            version VERSION
+
+            afterEvaluate {
+                from components.java
+            }
+        }
+    }
 }

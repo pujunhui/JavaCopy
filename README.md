@@ -1,12 +1,14 @@
 # JavaCopy
 使用注解处理器来帮助java实现kotlin的data class copy的功能
 
+[![JitPack](https://jitpack.io/v/pujunhui/JavaCopy.svg)](https://jitpack.io/#pujunhui/JavaCopy)
+
 工作原理如下：
 1. 注解处理器会去解析所有使用`@Copyable`注解的类。
-3. 解析构造方法，获得创建这个对象所需要的参数。
-4. 根据参数名称和类型，从这个类中找到对应的get方法或属性。
-5. 生成Copier类，对构造方法中的每个参数生成对应的get方法。
-6. 生成copy方法，从原对象中获取旧值，传入Copier类对应的get方法，然后调用构造方法，返回新的对象。
+2. 解析构造方法，获得创建这个对象所需要的参数。
+3. 根据参数名称和类型，从这个类中找到对应的get方法或属性。
+4. 生成Copier类，对构造方法中的每个参数生成对应的get方法。
+5. 生成copy方法，从原对象中获取旧值，传入Copier类对应的get方法，然后调用构造方法，返回新的对象。
 
 * 注意：使用@Copyable注解的类，只允许有且只有一个有参构造方法。
 
@@ -121,3 +123,11 @@ Student newStudent = new StudentCopier() {
 }.copy(oldStudent);
 ```
 
+gradle使用:
+
+``` gradle
+dependencies {
+    implementation "com.github.pujunhui.JavaCopy:annotation:1.0.0"
+    annotationProcessor "com.github.pujunhui.JavaCopy:processer:1.0.0"
+}
+```

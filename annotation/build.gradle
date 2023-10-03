@@ -1,8 +1,25 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
 }
+
+group = 'com.pujh.copy'
 
 java {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId GROUP_ID
+            artifactId 'annotation'
+            version VERSION
+
+            afterEvaluate {
+                from components.java
+            }
+        }
+    }
 }
