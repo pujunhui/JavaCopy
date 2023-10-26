@@ -1,6 +1,7 @@
 package com.pujh.copy;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * 只允许有且只有一个有参构造方法，通过参数名称，在类中查找get方法或属性
@@ -20,15 +21,15 @@ import androidx.annotation.NonNull;
 public final class Student {
     private final String name;
     public final int age;
+    @NonNull
     public final String mAddress;
     private final boolean isBoy;
 
     /**
-     *
-     * @param name 通过name能够找到getName()方法。
-     * @param age 通过age能够找到this.age属性。
+     * @param name    通过name能够找到getName()方法。
+     * @param age     通过age能够找到this.age属性。
      * @param address 通过address能够找到this.mAddress属性。
-     * @param boy 通过boy能够找到isBoy()方法。
+     * @param boy     通过boy能够找到isBoy()方法。
      */
     public Student(String name, int age, String address, boolean boy) {
         this.name = name;

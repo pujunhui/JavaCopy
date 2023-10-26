@@ -1,9 +1,13 @@
 package com.pujh.copy;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -172,20 +176,18 @@ public class CopyableProcessor extends AbstractProcessor {
     private MethodSpec generateGetMethodFromMethodElement(VariableElement parameter, ExecutableElement methodElement) {
         TypeMirror parameterType = parameter.asType();
         String methodName = methodElement.getSimpleName().toString(); //生成类的方法与原类的方法名保持一致
-        return MethodSpec.methodBuilder(methodName)
-                .addModifiers(Modifier.PROTECTED)
-                .addParameter(TypeName.get(parameterType), "oldValue")
-                .returns(TypeName.get(parameterType))
-                .addStatement("return oldValue")
-                .build();
+
+        boolean isPrimitive = parameterType.getKind().isPrimitive();
+        NonNull nonNull = parameter.getAnnotation(NonNull.class);
+
+        return generateGetMethod(parameterType, methodName, isPrimitive, isPrimitive || nonNull != null);
     }
 
     private MethodSpec generateGetMethodFromFieldElement(VariableElement parameter, VariableElement fieldElement) {
         TypeMirror parameterType = parameter.asType();
-        String parameterName = parameter.getSimpleName().toString();
         String fieldName = fieldElement.getSimpleName().toString();
         if (checkMStartString(fieldName)) { //如果以m开头，则去除m后，并小写首字母
-            fieldName = lowercaseFirstLetter(parameterName.substring(1));
+            fieldName = lowercaseFirstLetter(fieldName.substring(1));
         }
         String methodName;
         if (parameterType.getKind() == TypeKind.BOOLEAN) {
@@ -197,9 +199,38 @@ public class CopyableProcessor extends AbstractProcessor {
         } else {
             methodName = "get" + uppercaseFirstLetter(fieldName);
         }
+        boolean isPrimitive = parameterType.getKind().isPrimitive();
+        NonNull nonNull = parameter.getAnnotation(NonNull.class);
+
+        return generateGetMethod(parameterType, methodName, isPrimitive, isPrimitive || nonNull != null);
+    }
+
+    private MethodSpec generateGetMethod(TypeMirror parameterType, String methodName, boolean isPrimitive, boolean nonNull) {
+        if (isPrimitive) {
+            return MethodSpec.methodBuilder(methodName)
+                    .addModifiers(Modifier.PROTECTED)
+                    .addParameter(TypeName.get(parameterType), "oldValue")
+                    .returns(TypeName.get(parameterType))
+                    .addStatement("return oldValue")
+                    .build();
+        }
+        if (nonNull) {
+            return MethodSpec.methodBuilder(methodName)
+                    .addAnnotation(NonNull.class)
+                    .addModifiers(Modifier.PROTECTED)
+                    .addParameter(ParameterSpec.builder(TypeName.get(parameterType), "oldValue")
+                            .addAnnotation(NonNull.class)
+                            .build())
+                    .returns(TypeName.get(parameterType))
+                    .addStatement("return oldValue")
+                    .build();
+        }
         return MethodSpec.methodBuilder(methodName)
+                .addAnnotation(Nullable.class)
                 .addModifiers(Modifier.PROTECTED)
-                .addParameter(TypeName.get(parameterType), "oldValue")
+                .addParameter(ParameterSpec.builder(TypeName.get(parameterType), "oldValue")
+                        .addAnnotation(Nullable.class)
+                        .build())
                 .returns(TypeName.get(parameterType))
                 .addStatement("return oldValue")
                 .build();
