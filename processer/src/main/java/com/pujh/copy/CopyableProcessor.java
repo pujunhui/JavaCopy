@@ -1,7 +1,6 @@
 package com.pujh.copy;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
@@ -11,6 +10,9 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,6 +38,9 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+
+import kotlin.Metadata;
+import kotlin.jvm.internal.DefaultConstructorMarker;
 
 @AutoService(Processor.class)
 public class CopyableProcessor extends AbstractProcessor {
@@ -66,17 +71,29 @@ public class CopyableProcessor extends AbstractProcessor {
             List<VariableElement> fieldElements = new ArrayList<>();
             List<ExecutableElement> methodElements = new ArrayList<>();
 
-            //只允许有一个有参构造方法
-            //构造方法所有参数能在原有类中找到对应的非静态非私有的属性或方法
+            boolean isKotlinClass = copyableElement.getAnnotation(Metadata.class) != null;
+            int maxParametersSize = 0; //必须有参，大于0
+
+            //找到主构造方法，确保其所有参数能在原有类中找到对应的非静态非私有的属性或方法
             for (Element enclosedElement : copyableElement.getEnclosedElements()) {
                 ElementKind kind = enclosedElement.getKind();
                 if (kind == ElementKind.CONSTRUCTOR) {
-                    if (constructorElement != null) { //如果有多个构造器
-                        mMessager.printMessage(Diagnostic.Kind.ERROR,
-                                "@Copyable can only be applied to classes", copyableElement);
-                        return true;
+                    ExecutableElement element = (ExecutableElement) enclosedElement;
+                    int parametersSize = element.getParameters().size();
+                    if (parametersSize <= maxParametersSize) {
+                        continue;
                     }
-                    constructorElement = (ExecutableElement) enclosedElement;
+                    //找到参数最多的构造方法
+                    if (isKotlinClass) {
+                        //注意：如果是kotlin类，忽略最后一个参数为DefaultConstructorMarker类型的构造方法。
+                        TypeMirror markerType = mElementUtils.getTypeElement(DefaultConstructorMarker.class.getCanonicalName()).asType();
+                        TypeMirror lastParameterType = element.getParameters().get(parametersSize - 1).asType();
+                        if (markerType == lastParameterType) {
+                            continue;
+                        }
+                    }
+                    constructorElement = element;
+                    maxParametersSize = parametersSize;
                 } else if (kind == ElementKind.FIELD) {
                     Set<Modifier> modifiers = enclosedElement.getModifiers();
                     if (!modifiers.contains(Modifier.STATIC) && !modifiers.contains(Modifier.PRIVATE)) {
@@ -178,9 +195,10 @@ public class CopyableProcessor extends AbstractProcessor {
         String methodName = methodElement.getSimpleName().toString(); //生成类的方法与原类的方法名保持一致
 
         boolean isPrimitive = parameterType.getKind().isPrimitive();
-        NonNull nonNull = parameter.getAnnotation(NonNull.class);
+        boolean nonNull = parameter.getAnnotation(NonNull.class) != null
+                || parameter.getAnnotation(NotNull.class) != null;
 
-        return generateGetMethod(parameterType, methodName, isPrimitive, isPrimitive || nonNull != null);
+        return generateGetMethod(parameterType, methodName, isPrimitive, isPrimitive || nonNull);
     }
 
     private MethodSpec generateGetMethodFromFieldElement(VariableElement parameter, VariableElement fieldElement) {
@@ -199,10 +217,12 @@ public class CopyableProcessor extends AbstractProcessor {
         } else {
             methodName = "get" + uppercaseFirstLetter(fieldName);
         }
-        boolean isPrimitive = parameterType.getKind().isPrimitive();
-        NonNull nonNull = parameter.getAnnotation(NonNull.class);
 
-        return generateGetMethod(parameterType, methodName, isPrimitive, isPrimitive || nonNull != null);
+        boolean isPrimitive = parameterType.getKind().isPrimitive();
+        boolean nonNull = parameter.getAnnotation(NonNull.class) != null
+                || parameter.getAnnotation(NotNull.class) != null;
+
+        return generateGetMethod(parameterType, methodName, isPrimitive, isPrimitive || nonNull);
     }
 
     private MethodSpec generateGetMethod(TypeMirror parameterType, String methodName, boolean isPrimitive, boolean nonNull) {
@@ -216,10 +236,10 @@ public class CopyableProcessor extends AbstractProcessor {
         }
         if (nonNull) {
             return MethodSpec.methodBuilder(methodName)
-                    .addAnnotation(NonNull.class)
+                    .addAnnotation(NotNull.class)
                     .addModifiers(Modifier.PROTECTED)
                     .addParameter(ParameterSpec.builder(TypeName.get(parameterType), "oldValue")
-                            .addAnnotation(NonNull.class)
+                            .addAnnotation(NotNull.class)
                             .build())
                     .returns(TypeName.get(parameterType))
                     .addStatement("return oldValue")
