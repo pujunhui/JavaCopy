@@ -21,7 +21,7 @@ publishing {
     publications {
         maven(MavenPublication) {
             groupId GROUP_ID
-            artifactId 'processer'
+            artifactId 'processor'
             version VERSION
 
             afterEvaluate {

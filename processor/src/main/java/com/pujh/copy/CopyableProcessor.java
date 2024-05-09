@@ -88,7 +88,7 @@ public class CopyableProcessor extends AbstractProcessor {
                         //注意：如果是kotlin类，忽略最后一个参数为DefaultConstructorMarker类型的构造方法。
                         TypeMirror markerType = mElementUtils.getTypeElement(DefaultConstructorMarker.class.getCanonicalName()).asType();
                         TypeMirror lastParameterType = element.getParameters().get(parametersSize - 1).asType();
-                        if (markerType == lastParameterType) {
+                        if (mTypeUtils.isSameType(markerType, lastParameterType)) {
                             continue;
                         }
                     }
@@ -178,6 +178,7 @@ public class CopyableProcessor extends AbstractProcessor {
                         .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                         .addMethods(getMethods)
                         .addMethod(copyMethod.build())
+                        .addOriginatingElement(copyableElement)
                         .build();
 
                 // 创建 Java 文件

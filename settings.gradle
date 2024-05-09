@@ -17,4 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "JavaCopy"
 include ':app'
 include ':annotation'
-include ':processer'
+include ':processor'

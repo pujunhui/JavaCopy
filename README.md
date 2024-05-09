@@ -127,7 +127,7 @@ gradle使用:
 
 ``` gradle
 dependencies {
-    implementation "com.github.pujunhui.JavaCopy:annotation:1.0.2"
-    annotationProcessor "com.github.pujunhui.JavaCopy:processer:1.0.2"
+    implementation "com.github.pujunhui.JavaCopy:annotation:1.0.3"
+    annotationProcessor "com.github.pujunhui.JavaCopy:processor:1.0.3"
 }
 ```
